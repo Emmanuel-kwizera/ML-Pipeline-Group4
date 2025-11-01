@@ -191,3 +191,23 @@ def read_household(household_id: int, db: Session = Depends(get_db)):
     if household is None:
         raise HTTPException(status_code=404, detail="Household not found")
     return household
+
+@app.put("/households/{household_id}", response_model=schemas.Household)
+def update_household(household_id: int, household: schemas.HouseholdCreate, db: Session = Depends(get_db)):
+    db_household = db.query(models.Household).filter(models.Household.id == household_id).first()
+    if db_household is None:
+        raise HTTPException(status_code=404, detail="Household not found")
+    for key, value in household.model_dump().items():
+        setattr(db_household, key, value)
+    db.commit()
+    db.refresh(db_household)
+    return db_household
+
+@app.delete("/households/{household_id}")
+def delete_household(household_id: int, db: Session = Depends(get_db)):
+    household = db.query(models.Household).filter(models.Household.id == household_id).first()
+    if household is None:
+        raise HTTPException(status_code=404, detail="Household not found")
+    db.delete(household)
+    db.commit()
+    return {"message": "Household deleted"}
