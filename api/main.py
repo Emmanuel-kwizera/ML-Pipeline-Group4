@@ -88,3 +88,44 @@ def seed_dataset(db: Session = Depends(get_db)):
         "dataset_seeded": True,
         "message": "Dataset seeded successfully"
     }
+
+# Province CRUD operations
+@app.post("/provinces/", response_model=schemas.Province)
+def create_province(province: schemas.ProvinceCreate, db: Session = Depends(get_db)):
+    db_province = models.Province(**province.model_dump())
+    db.add(db_province)
+    db.commit()
+    db.refresh(db_province)
+    return db_province
+
+@app.get("/provinces/", response_model=List[schemas.Province])
+def read_provinces(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    provinces = db.query(models.Province).offset(skip).limit(limit).all()
+    return provinces
+
+@app.get("/provinces/{province_id}", response_model=schemas.Province)
+def read_province(province_id: int, db: Session = Depends(get_db)):
+    province = db.query(models.Province).filter(models.Province.id == province_id).first()
+    if province is None:
+        raise HTTPException(status_code=404, detail="Province not found")
+    return province
+
+@app.put("/provinces/{province_id}", response_model=schemas.Province)
+def update_province(province_id: int, province: schemas.ProvinceCreate, db: Session = Depends(get_db)):
+    db_province = db.query(models.Province).filter(models.Province.id == province_id).first()
+    if db_province is None:
+        raise HTTPException(status_code=404, detail="Province not found")
+    for key, value in province.model_dump().items():
+        setattr(db_province, key, value)
+    db.commit()
+    db.refresh(db_province)
+    return db_province
+
+@app.delete("/provinces/{province_id}")
+def delete_province(province_id: int, db: Session = Depends(get_db)):
+    province = db.query(models.Province).filter(models.Province.id == province_id).first()
+    if province is None:
+        raise HTTPException(status_code=404, detail="Province not found")
+    db.delete(province)
+    db.commit()
+    return {"message": "Province deleted"}  
