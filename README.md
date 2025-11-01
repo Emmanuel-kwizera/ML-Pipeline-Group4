@@ -59,7 +59,10 @@ project/
 
 ## Usage
 
-Once the application is running, you can access the API documentation at `http://127.0.0.1:8000/docs`.
+Once the application is running, you can access the API documentation at:
+
+OpenAPI (Swagger): `http://127.0.0.1:8000/swagger-ui`.
+Redocs: `http://127.0.0.1:8000/docs`
 
 
 ## Docker
@@ -74,4 +77,5 @@ To run the Docker container:
 docker run -d -p 8000:8000 ML-Pipeline-Group4
 ```
 
-You can then access the API documentation at `http://localhost:8000/docs`.
+You can then access the API documentation at `http://localhost:8000/docs`
+or `http://localhost:8000/swagger-ui`.
