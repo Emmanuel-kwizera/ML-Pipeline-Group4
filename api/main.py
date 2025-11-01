@@ -211,3 +211,82 @@ def delete_household(household_id: int, db: Session = Depends(get_db)):
     db.delete(household)
     db.commit()
     return {"message": "Household deleted"}
+
+# Egg Production CRUD operations
+@app.post("/egg-production/", response_model=schemas.EggProduction)
+def create_egg_production(egg_production: schemas.EggProductionCreate, db: Session = Depends(get_db)):
+    db_egg_production = models.EggProduction(**egg_production.model_dump())
+    db.add(db_egg_production)
+    db.commit()
+    db.refresh(db_egg_production)
+    return db_egg_production
+
+@app.get("/egg-production/", response_model=List[schemas.EggProductionData])
+def read_egg_productions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    provinces = db.query(models.Province).all()
+    districts = db.query(models.District).all()
+    households = db.query(models.Household).all()
+    # order by id desc
+    egg_productions = db.query(models.EggProduction).order_by(text("id desc")).offset(skip).limit(limit).all()
+    result_list = []
+    for ep in egg_productions:
+        household = next((h for h in households if h.id == ep.household_id), None)
+        district = next((d for d in districts if d.id == household.district_id), None) if household else None
+        province = next((p for p in provinces if p.id == district.province_id), None) if district else None
+        ep_data = {
+            "id": ep.id,
+            "household_id": ep.household_id,
+            "month": ep.month,
+            "laying_hens": ep.laying_hens,
+            "eggs_produced": ep.eggs_produced,
+            "eggs_consumed": ep.eggs_consumed,
+            "eggs_sold": ep.eggs_sold,
+            "egg_unit_price": ep.egg_unit_price,
+            "hatched_eggs": ep.hatched_eggs,
+            "eggs_for_other_usages": ep.eggs_for_other_usages,
+            "household": {
+                "province_id": household.province_id,
+                "district_id": household.district_id,
+                "clust": household.clust,
+                "owner": household.owner,
+                "household_weight": household.household_weight,
+                "yield_field": household.yield_field,
+                "produced_eggs_last_six_months": household.produced_eggs_last_six_months
+            },
+            "district": {
+                "district_name": district.district_name,
+                "province_id": district.province_id
+            },
+            "province": {
+                "province_name": province.province_name
+            }
+        }
+        result_list.append(schemas.EggProductionData(**ep_data))
+    return result_list
+
+@app.get("/egg-production/{egg_production_id}", response_model=schemas.EggProduction)
+def read_egg_production(egg_production_id: int, db: Session = Depends(get_db)):
+    egg_production = db.query(models.EggProduction).filter(models.EggProduction.id == egg_production_id).first()
+    if egg_production is None:
+        raise HTTPException(status_code=404, detail="Egg production record not found")
+    return egg_production
+
+@app.put("/egg-production/{egg_production_id}", response_model=schemas.EggProduction)
+def update_egg_production(egg_production_id: int, egg_production: schemas.EggProductionCreate, db: Session = Depends(get_db)):
+    db_egg_production = db.query(models.EggProduction).filter(models.EggProduction.id == egg_production_id).first()
+    if db_egg_production is None:
+        raise HTTPException(status_code=404, detail="Egg production record not found")
+    for key, value in egg_production.model_dump().items():
+        setattr(db_egg_production, key, value)
+    db.commit()
+    db.refresh(db_egg_production)
+    return db_egg_production
+
+@app.delete("/egg-production/{egg_production_id}")
+def delete_egg_production(egg_production_id: int, db: Session = Depends(get_db)):
+    egg_production = db.query(models.EggProduction).filter(models.EggProduction.id == egg_production_id).first()
+    if egg_production is None:
+        raise HTTPException(status_code=404, detail="Egg production record not found")
+    db.delete(egg_production)
+    db.commit()
+    return {"message": "Egg production record deleted"}
