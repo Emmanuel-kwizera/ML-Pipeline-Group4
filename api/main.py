@@ -129,3 +129,44 @@ def delete_province(province_id: int, db: Session = Depends(get_db)):
     db.delete(province)
     db.commit()
     return {"message": "Province deleted"}  
+
+# District CRUD operations
+@app.post("/districts/", response_model=schemas.District)
+def create_district(district: schemas.DistrictCreate, db: Session = Depends(get_db)):
+    db_district = models.District(**district.model_dump())
+    db.add(db_district)
+    db.commit()
+    db.refresh(db_district)
+    return db_district
+
+@app.get("/districts/", response_model=List[schemas.District])
+def read_districts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    districts = db.query(models.District).offset(skip).limit(limit).all()
+    return districts
+
+@app.get("/districts/{district_id}", response_model=schemas.District)
+def read_district(district_id: int, db: Session = Depends(get_db)):
+    district = db.query(models.District).filter(models.District.id == district_id).first()
+    if district is None:
+        raise HTTPException(status_code=404, detail="District not found")
+    return district
+
+@app.put("/districts/{district_id}", response_model=schemas.District)
+def update_district(district_id: int, district: schemas.DistrictCreate, db: Session = Depends(get_db)):
+    db_district = db.query(models.District).filter(models.District.id == district_id).first()
+    if db_district is None:
+        raise HTTPException(status_code=404, detail="District not found")
+    for key, value in district.model_dump().items():
+        setattr(db_district, key, value)
+    db.commit()
+    db.refresh(db_district)
+    return db_district
+
+@app.delete("/districts/{district_id}")
+def delete_district(district_id: int, db: Session = Depends(get_db)):
+    district = db.query(models.District).filter(models.District.id == district_id).first()
+    if district is None:
+        raise HTTPException(status_code=404, detail="District not found")
+    db.delete(district)
+    db.commit()
+    return {"message": "District deleted"}
