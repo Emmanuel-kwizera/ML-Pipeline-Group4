@@ -170,3 +170,24 @@ def delete_district(district_id: int, db: Session = Depends(get_db)):
     db.delete(district)
     db.commit()
     return {"message": "District deleted"}
+
+# Household CRUD operations
+@app.post("/households/", response_model=schemas.Household)
+def create_household(household: schemas.HouseholdCreate, db: Session = Depends(get_db)):
+    db_household = models.Household(**household.model_dump())
+    db.add(db_household)
+    db.commit()
+    db.refresh(db_household)
+    return db_household
+
+@app.get("/households/", response_model=List[schemas.Household])
+def read_households(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    households = db.query(models.Household).offset(skip).limit(limit).all()
+    return households
+
+@app.get("/households/{household_id}", response_model=schemas.Household)
+def read_household(household_id: int, db: Session = Depends(get_db)):
+    household = db.query(models.Household).filter(models.Household.id == household_id).first()
+    if household is None:
+        raise HTTPException(status_code=404, detail="Household not found")
+    return household
